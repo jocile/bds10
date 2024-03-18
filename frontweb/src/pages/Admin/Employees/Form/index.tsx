@@ -1,10 +1,13 @@
+import { AxiosRequestConfig } from 'axios';
 import { useHistory } from 'react-router-dom';
 import './styles.css';
 import { Controller, useForm } from 'react-hook-form';
 import { Employee } from 'types/employee';
 import Select from 'react-select';
 import { Department } from 'types/department';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { requestBackend } from 'util/requests';
+import { toast } from 'react-toastify';
 
 const Form = () => {
 
@@ -13,7 +16,9 @@ const Form = () => {
   const {
     control,
     register,
+    handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm<Employee>();
 
   const handleCancel = () => {
@@ -22,12 +27,45 @@ const Form = () => {
 
   const [selectDepartment, setSelectDepartment] = useState<Department[]>([]);
 
+  useEffect(() => {
+    requestBackend({ url: '/departments', withCredentials: true }).then((response) => {
+      setSelectDepartment(response.data);
+    });
+  }, []);
+
+  const onSubmit = (formData: Employee) => {
+
+    const data = { ...formData}
+
+    const config: AxiosRequestConfig = {
+      method: 'POST',
+      url: '/employees',
+      data,
+      withCredentials: true,
+    };
+
+    requestBackend(config)
+      .then((response) => {
+        toast.info('Cadastrado com sucesso');
+        setValue('name', '');
+        setValue('email', '');
+        setValue('department', {
+          id: 0,
+          name: ''
+        });
+        history.push('/admin/employees');
+    })
+    .catch(() => {
+      toast.error('Erro ao cadastrar funcionário')
+    });
+  };
+
   return (
     <div className="employee-crud-container">
       <div className="base-card employee-crud-form-card">
         <h1 className="employee-crud-form-title">INFORME OS DADOS</h1>
 
-        <form>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <div className="row employee-crud-inputs-container">
             <div className="col employee-crud-inputs-left-container">
 
